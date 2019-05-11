@@ -7,14 +7,15 @@ extra_javascript:
 markdown_extensions:
     - mdx_math
 site_author: Apurva Shrivastava
+use_directory_urls: false
 pages:
     - Home: index.md
-    - C++ Library:
-        - 'Defining Tensors': 'tensors.md'
-        - 'Computing on Tensors': 'computations.md'
     - Python Library:
         - 'Defining Tensors': 'pytensors.md'
         - 'Computing on Tensors': 'pycomputations.md'
+    - C++ Library:
+        - 'Defining Tensors': 'tensors.md'
+        - 'Computing on Tensors': 'computations.md'
     - Example Applications:
         - 'Scientific Computing: SpMV': 'scientific_computing.md'
         - 'Machine Learning: SDDMM': 'machine_learning.md'

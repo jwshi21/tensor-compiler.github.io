@@ -1,6 +1,6 @@
 # Specifying Tensor Algebra Computations
 
-[Tensor notation](tensors#Computing-on-Tensors) is described in detail in the description of the C++ library. Here, we focus on the syntax for python.
+Tensor algebra computations can be expressed in taco with tensor index notation, which on a high level describes how each element in the output tensor can be computed from elements in the input tensors.  [Tensor index notation](computations.md) is described in detail in the description of the C++ library. Here, we focus on the syntax for python.
 
 The syntax is very similar to C++ except that we use square brackets ```[]``` to access tensors instead of parenthesis. For instance, to express [matrix addition](tensors#Computing-on-Tensors) in Python, we simply need to write:
 
@@ -109,7 +109,7 @@ The [einsum](https://rockt.github.io/2018/04/30/einsum) function takes an einsum
 
 ```pytaco.einsum(subscripts, *operands, out_format, dtype=float)```
 
-The ```pytaco.parser``` string follows syntax exactly like the [C++ API index notation](tensors#Computing-on-Tensors). Notice that this differs from the python notation in that parenthesis are used instead of square brackets and we do not need to index scalars. The parser has the following spec:
+The ```pytaco.parser``` string follows syntax exactly like the [C++ API index notation](computations.md). Notice that this differs from the python notation in that parenthesis are used instead of square brackets and we do not need to index scalars. The parser has the following spec:
 
 ```pytaco.parser(string, *operands, out_format, dtype=float)```
 

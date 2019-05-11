@@ -1,6 +1,6 @@
 # Declaring Tensors
 
-`pytaco.Tensor` objects correspond to mathematical Tensors similar to the C++ library. You can can declare a new tensor by specifying its name, a vector with the size of each dimension and the [storage format](pytensors.md#defining-tensor-formats) that will be used to store the tensor and a datatype(pytensors.md#Datatypes):
+`pytaco.Tensor` objects correspond to mathematical tensors. You can can declare a new tensor by specifying its name, a vector with the size of each dimension and the [storage format](pytensors.md#defining-tensor-formats) that will be used to store the tensor and a [datatype](pytensors.md#tensor-datatypes):
 
 ```python
 # Import the pytaco library
@@ -22,7 +22,7 @@ from pytaco import dense, compressed
 A = pt.tensor([512, 64, 2048], pt.format([dense, compressed, compressed]), pt.float64)
 ```
 
-The [datatype](pytensors.md#Tensor-Datatypes) can also be omitted in which case taco will default to using `pt.float32`:
+The [datatype](pytensors.md#tensor-datatypes) can also be omitted in which case taco will default to using `pt.float32`:
 ```python
 import pytaco as pt
 from pytaco import dense, compressed
@@ -54,9 +54,11 @@ aplha = pt.tensor(42.0)
 
 # Defining Tensor Formats
 
-Storage formats are described conceptually [here](tensors.md#defining-tensor-formats).
+Conceptually, you can think of a tensor as a tree with each level (excluding the root) corresponding to a dimension of the tensor. Each path from the root to a leaf node represents a tensor coordinate and its corresponding value. Which dimension each level of the tree corresponds to is determined by the order in which dimensions of the tensor are stored.
 
-Similar to the C++ API, you can define a new tensor storage format by creating a `pytaco.format` object. The constructor for `pytaco.format` takes as arguments a list specifying the type of each dimension and (optionally) a list specifying the order in which dimensions are to be stored, as seen below:
+taco uses a novel scheme that can describe different storage formats for any tensor by specifying the order in which tensor dimensions are stored and whether each dimension is sparse or dense. A sparse dimension stores only the subset of the dimension that contains non-zero values and is conceptually similar to the index arrays used in the compressed sparse row (CSR) matrix format, while a dense dimension stores both zeros and non-zeros. As demonstrated below, this scheme is flexibile enough to express many commonly-used matrix storage formats.
+
+You can define a new tensor storage format by creating a `pytaco.format` object. The constructor for `pytaco.format` takes as arguments a list specifying the type of each dimension and (optionally) a list specifying the order in which dimensions are to be stored, as seen below:
 ```python
 import pytaco as pt
 from pytaco import dense, compressed, format
