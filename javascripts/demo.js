@@ -30,7 +30,6 @@ function demo() {
       }
     },
     updateScheduleView: function() {
-      console.log(model.schedule);
       model.removeInvalidIndices();
       model.removeInvalidAccesses();
       model.scheduleView(0);
@@ -102,20 +101,6 @@ function demo() {
     },
     getError: function() {
       return (model.output.error !== "") ? model.output.error : model.input.error;
-    },
-
-    setExampleSchedule: function(e, schedule) {
-      if (schedule.length === 0) {
-        $("#btnDefaults").hide();
-      } else {
-        $("#btnDefaults").show();
-        $("#btnCPU").attr('data-val', e);
-        $("#btnCPU").text(e + " CPU");
-
-        $("#btnGPU").attr('data-val', e);
-        $("#btnGPU").text(e + " GPU");
-      }
-      model.setSchedule(schedule);
     },
     setSchedule: function(schedule) {
       model.schedule = JSON.parse(JSON.stringify(schedule)); // deep
@@ -961,29 +946,38 @@ function demo() {
 
   model.addReqView(btnGetKernelView.updateView);
 
-  $("#btnGetKernel").click(function() {
-    model.setOutput("", "", "", "");
+  var getExpressionString = function() {
+    return model.input.expression.replace(/ /g, "");
+  };
 
-    var command = model.input.expression.replace(/ /g, "");
+  var getFormatsString = function() {
+    formats = ""
     for (t in model.input.tensorOrders) {
       var order = model.input.tensorOrders[t];
       if (order === 0) {
         continue;
       }
 
-      command += (" -f=" + t + ":");
+      formats += (" -f=" + t + ":");
       
       var dims = $("#dims" + t).sortable("toArray");
       for (var i = 1; i <= order; ++i) {
-        command += $("#" + dims[i] + "_select").attr("data-val");
+        formats += $("#" + dims[i] + "_select").attr("data-val");
       }
       
-      command += ":";
+      formats += ":";
       for (var i = 1; i <= order; ++i) {
-        command += dims[i].split("_")[1];
-        command += (i === order) ? "" : ",";
+        formats += dims[i].split("_")[1];
+        formats += (i === order) ? "" : ",";
       }
     }
+    return formats; 
+  };
+
+  $("#btnGetKernel").click(function() {
+    model.setOutput("", "", "", "");
+
+    var command = getExpressionString() + getFormatsString();
 
     for (var i = 0; i < model.schedule.length; ++i) {
       command += " -s=";
@@ -1010,8 +1004,8 @@ function demo() {
 
     var req = $.ajax({
         type: "POST",
-        url: "http://tensor-compiler-online.csail.mit.edu",
-        data: escape(command),
+        url: "http://localhost:80",
+        data: JSON.stringify({type: "KERNEL", cmd: command}),
         async: true,
         cache: false,
         success: function(response) {
@@ -1106,7 +1100,7 @@ function demo() {
         model.setInput(code);
 
         var schedule = default_CPU_schedules[e];
-        model.setExampleSchedule(e, schedule);      
+        // model.setExampleSchedule(e, schedule);      
       };
       $("#example_" + e).click(setExample);
 
@@ -1131,11 +1125,38 @@ function demo() {
     model.addScheduleRow();
   });
 
-  $("#btnCPU").click(function() {
-    model.setSchedule(default_CPU_schedules[$(this).attr('data-val')]);
-  });
+  var parseSchedule = function(response) {
+    schedule = [];
+    for (var arg of response.split(' ')) {
+      command = arg.substring(arg.indexOf("=") + 1, arg.indexOf("("));
 
-  $("#btnGPU").click(function() {
-    model.setSchedule(default_GPU_schedules[$(this).attr('data-val')]);
+      parameters_substring = arg.substring(arg.indexOf("(") + 1, arg.lastIndexOf(")"));
+      parameters = parameters_substring.split(",");
+    
+      schedule.push({command : command, parameters: parameters});
+    }
+
+    return schedule;
+  };
+
+  $("#btnDefault").click(function() {
+    model.setOutput("", "", "", "");
+
+    var req = $.ajax({
+        type: "POST",
+        url: "http://localhost:80",
+        data: JSON.stringify({type: "SCHEDULE", 
+                              expr: getExpressionString(), 
+                              form: getFormatsString()}),
+        async: true,
+        cache: false,
+        success: function(response) {
+          model.setSchedule(parseSchedule(response));
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+          console.log("error :-(");
+        }
+    });
+    model.setReq(req);
   });
 }
