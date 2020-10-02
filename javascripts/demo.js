@@ -1154,7 +1154,7 @@ function demo() {
           model.setSchedule(parseSchedule(response));
         },
         error: function(XMLHttpRequest, textStatus, errorThrown) {
-          console.log("error :-(");
+          console.log("error :-("); // FIX THIS TODO
         }
     });
     model.setReq(req);

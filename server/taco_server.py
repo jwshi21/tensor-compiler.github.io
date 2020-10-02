@@ -30,11 +30,9 @@ class Handler(BaseHTTPRequestHandler):
         response = self.get_schedule(request["expr"], request["form"])
       elif request_type == "KERNEL":
         response = self.get_kernel(request["cmd"])
-        print(response)
 
       self.send_response(200)
-    except Exception as e:
-      print(e) 
+    except:
       self.send_response(400)
 
     self.send_header('Access-Control-Allow-Origin', '*')
