@@ -1100,7 +1100,7 @@ function demo() {
         model.setInput(code);
 
         var schedule = default_CPU_schedules[e];
-        // model.setExampleSchedule(e, schedule);      
+        model.resetSchedule();      
       };
       $("#example_" + e).click(setExample);
 
@@ -1126,13 +1126,21 @@ function demo() {
   });
 
   var parseSchedule = function(response) {
-    schedule = [];
+    var schedule = [];
     for (var arg of response.split(' ')) {
-      command = arg.substring(arg.indexOf("=") + 1, arg.indexOf("("));
+      var command = arg.substring(arg.indexOf("=") + 1, arg.indexOf("("));
 
-      parameters_substring = arg.substring(arg.indexOf("(") + 1, arg.lastIndexOf(")"));
-      parameters = parameters_substring.split(",");
-    
+      var parameters_substring = arg.substring(arg.indexOf("(") + 1, arg.lastIndexOf(")"));
+      
+      var parameters = [];
+      if (parameters_substring.indexOf('(') != -1) {
+        var index = parameters_substring.lastIndexOf(')') + 1;
+        parameters.push(parameters_substring.substring(0, index));
+        parameters_substring = parameters_substring.substring(parameters_substring.indexOf(",", index) + 1);
+      }
+      console.log(parameters_substring);
+      parameters = parameters.concat(parameters_substring.split(","));
+
       schedule.push({command : command, parameters: parameters});
     }
 
@@ -1154,7 +1162,9 @@ function demo() {
           model.setSchedule(parseSchedule(response));
         },
         error: function(XMLHttpRequest, textStatus, errorThrown) {
-          console.log("error :-("); // FIX THIS TODO
+          var errorMsg = "No schedule found";
+          model.setOutput("", "", "", errorMsg); 
+          model.setReq(null);
         }
     });
     model.setReq(req);

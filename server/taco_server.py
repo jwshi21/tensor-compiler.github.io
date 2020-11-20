@@ -27,12 +27,14 @@ class Handler(BaseHTTPRequestHandler):
       request_type = request["type"]
 
       if request_type == "SCHEDULE":
+        print(request)
         response = self.get_schedule(request["expr"], request["form"])
       elif request_type == "KERNEL":
         response = self.get_kernel(request["cmd"])
 
       self.send_response(200)
-    except:
+    except Exception as e:
+      print(e)
       self.send_response(400)
 
     self.send_header('Access-Control-Allow-Origin', '*')
@@ -46,7 +48,7 @@ class Handler(BaseHTTPRequestHandler):
     import sys
     sys.path.append(schedulePath)
     import interact
-    return interact.query(expr, form)
+    return interact.get_schedule(expr, form)
 
   def get_kernel(self, cmd):
     response = {'compute-kernel': '', 'assembly-kernel': '', 'full-kernel': '', 'error': ''}
