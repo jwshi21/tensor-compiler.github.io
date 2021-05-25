@@ -4,11 +4,9 @@ function demo() {
       expression: "",
       tensorOrders: {},
       error: "",
-      indices: [],
-      prefix: ""
+      indices: []
     },
     schedule: [],
-    exampleSchedule: "",
     output: {
       computeLoops: "",
       assemblyLoops: "",
@@ -19,7 +17,6 @@ function demo() {
 
     inputViews: [],
     scheduleView: null,
-    exampleScheduleViews: [],
     outputViews: [],
     reqViews: [],
 
@@ -36,15 +33,6 @@ function demo() {
       model.removeInvalidIndices();
       model.removeInvalidAccesses();
       model.scheduleView(0);
-    },
-    addExampleScheduleView: function(newView) {
-      model.exampleScheduleViews.push(newView);
-      newView(0);
-    },
-    updateExampleScheduleViews: function() {
-      for (v in model.exampleScheduleViews) {
-        model.exampleScheduleViews[v](0);
-      }
     },
     addOutputView: function(newView) {
       model.outputViews.push(newView);
@@ -92,11 +80,6 @@ function demo() {
       }
       model.updateInputViews();
     },
-    setPrefix: function(prefix) {
-      model.cancelReq();
-      model.setOutput("", "", "", "");
-      model.input.prefix = prefix;
-    },
     setOutput: function(computeLoops, assemblyLoops, fullCode, error) {
       model.output = { computeLoops: computeLoops,
                        assemblyLoops: assemblyLoops,
@@ -128,24 +111,17 @@ function demo() {
     },
     resetSchedule: function() {
       model.schedule = [];
-
-      model.cancelReq();
-      model.setOutput("", "", "", "");
       model.updateScheduleView();
     },
     addScheduleRow: function() {
       model.schedule.push({command: "", parameters: []});
-
       model.updateScheduleView();
     },
     deleteScheduleRow: function(row) {
-      var isNop = (model.schedule[row].command === "");
       model.schedule.splice(row, 1);
 
-      if (!isNop) {
-        model.cancelReq();
-        model.setOutput("", "", "", "");
-      }
+      model.cancelReq();
+      model.setOutput("", "", "", "");
       model.updateScheduleView();
     },
     swapScheduleRows: function(row1, row2) {
@@ -163,23 +139,12 @@ function demo() {
         var parameterInfo = scheduleCommands[command][i];
         var defaultValue = "";
 
-        if (parameterInfo[0] === "default" || 
-            parameterInfo[0] === "predefined dropdown") {
+        if (parameterInfo[0] === "default" || parameterInfo[0] === "predefined dropdown") {
           defaultValue = parameterInfo[1];
-        } else if (parameterInfo[0] === "result dropdown") {
-          for (var access in model.input.tensorOrders) {
-            if (model.input.tensorOrders[access] > 0
-                && model.input.expression.indexOf(access) <= model.input.expression.indexOf("=")) {
-              defaultValue += access;
-              break;
-            }
-          }
         }
         model.schedule[row].parameters.push(defaultValue);
       }
 
-      model.cancelReq();
-      model.setOutput("", "", "", "");
       model.updateScheduleView();
     },
     addScheduleParameter: function(row, index, value) {
@@ -629,13 +594,13 @@ function demo() {
       2: ["default", ""],
       3: ["text"]
     },
-    divide: {
-      parameters: ["Divided IndexVar", "Outer IndexVar", "Inner IndexVar", "Divide Factor"],
-      0: ["index dropdown", [1, "0"], [2, "1"]],
-      1: ["default", ""],
-      2: ["default", ""],
-      3: ["text"]
-    },
+    // divide: {
+    //   parameters: ["Divided IndexVar", "Outer IndexVar", "Inner IndexVar", "Divide Factor"],
+    //   0: ["index dropdown", [1, "0"], [2, "1"]],
+    //   1: ["default", ""],
+    //   2: ["default", ""],
+    //   3: ["text"]
+    // },
     precompute: {
       parameters: ["Precomputed Expr", "Original IndexVar", "Workspace IndexVar"],
       0: ["long text"],
@@ -666,12 +631,6 @@ function demo() {
           "GPU Thread", "GPU Block", "GPU Warp"],
       2: ["predefined dropdown", "No Races",
           "Ignore Races", "No Races", "Atomics", "Temporary", "Parallel Reduction"]
-    },
-    assemble: {
-      parameters: ["Result Tensor", "Assembly Strategy"],
-      0: ["result dropdown"],
-      1: ["predefined dropdown", "Insert",
-          "Insert", "Append"]
     }
   };
 
@@ -753,26 +712,6 @@ function demo() {
         return parameter;
       }
 
-      // a dropdown where user can choose from result tensors
-      function resultDropdown(parameterName, inputId, input) {
-        var parameter = ""; 
-        var defaultParam = "";
-        for (var access in model.input.tensorOrders) {
-          if (model.input.tensorOrders[access] > 0
-              && model.input.expression.indexOf(access) <= model.input.expression.indexOf("=")) {
-            parameter += "<li><a>";
-            parameter += access;
-            parameter += "</a></li>";
-            if (defaultParam === "") {
-              defaultParam += access;
-            }
-          }
-        }
-        parameter = dropdown(parameterName, inputId, input, defaultParam) 
-                  + parameter + "</ul></div></li>";
-        return parameter;
-      }
-
       // a dropdown where user can choose from a set of predefined options
       function predefinedDropdown(parameterName, inputId, input, options) {
         var parameter = dropdown(parameterName, inputId, input, options[0], false, "160px");
@@ -801,9 +740,6 @@ function demo() {
             break;
           case "access dropdown":
             parameters += accessDropdown(parameterName, inputId, input);
-            break;
-          case "result dropdown":
-            parameters += resultDropdown(parameterName, inputId, input);
             break;
           case "predefined dropdown":
             parameters += predefinedDropdown(parameterName, inputId, input, parameterInfo.slice(1));
@@ -900,7 +836,7 @@ function demo() {
         var row = rowId.substring(("schedule").length);
 
         $("#" + rowId).val(command);
-        model.addScheduleCommand(row, command);
+        model.addScheduleCommand(row, command, );
       });
 
       $(".schedule-input input").on("change", function(e) {
@@ -947,23 +883,6 @@ function demo() {
 
   model.scheduleView = tblScheduleView.updateView;
 
-  var btnExampleScheduleView = {
-    updateView: function(timeout) {
-      if (model.exampleSchedule.length === 0) {
-        $("#btnDefaults").hide();
-      } else {
-        $("#btnDefaults").show();
-        $("#btnCPU").attr('data-val', model.exampleSchedule);
-        $("#btnCPU").text(model.exampleSchedule + " CPU");
-
-        $("#btnGPU").attr('data-val', model.exampleSchedule);
-        $("#btnGPU").text(model.exampleSchedule + " GPU");
-      }
-    }
-  };
-
-  model.addExampleScheduleView(btnExampleScheduleView.updateView);
-
   var btnGetKernelView = {
     updateView: function(timeout) {
       $("#btnGetKernel").prop('disabled', model.input.error !== "" || model.req);
@@ -977,8 +896,7 @@ function demo() {
 
   $("#txtExpr").keyup(function() {
     model.setInput($("#txtExpr").val());
-    model.resetSchedule();
-    model.setExampleSchedule("");
+    model.updateScheduleView();
   });
 
   var panelKernelsView = {
@@ -1061,42 +979,28 @@ function demo() {
 
     var command = getExpressionString() + getFormatsString();
 
-    var schedule = "";
     for (var i = 0; i < model.schedule.length; ++i) {
+      command += " -s=";
+
       var scheduleCommand = model.schedule[i]["command"];
       if (!scheduleCommand) { continue; }
 
-      command += " -s=\"" + scheduleCommand + "(";
-      schedule += ((schedule === "") ? "" : ";") + scheduleCommand + ":";
+      command += scheduleCommand + "(";
 
       for (var param of model.schedule[i]["parameters"]) {
-        var paramShortened = param.toString().replace(/ /g, "");
-        if (!paramShortened) {
+        param = param.toString().replace(/ /g, "");
+        if (!param) {
           errorMsg = "Schedule is missing arguments";
           model.cancelReq();
           model.setOutput("", "", "", errorMsg); 
           return; 
         }
-        command += paramShortened + ",";
-        schedule += param + ":";
+        command += param + ",";
       }
 
       command = command.substring(0, command.length - 1);
-      command += ")\"";
-      schedule = schedule.substring(0, schedule.length - 1);
+      command += ")";
     }
-
-    var prefix = model.input.prefix.replaceAll(" ", "");
-    if (prefix) {
-      command += " -prefix=" + prefix;
-    }
-
-    var url = window.location.pathname + "?expr=" 
-                  + model.input.expression + "&format=" + formats;
-    if (schedule !== "") {
-      url += "&sched=" + schedule;
-    }
-    history.replaceState(null, "", url);
 
     var req = $.ajax({
         type: "POST",
@@ -1118,8 +1022,7 @@ function demo() {
         }
     });
     model.setReq(req);
-  };
-  $("#btnGetKernel").click(getKernel);
+  });
 
   var examples = {
       spmv: { name: "SpMV", 
@@ -1130,15 +1033,7 @@ function demo() {
           x: { name: "Dense array", levels: { formats: ["d"], ordering: [0] } }
         }
       },
-      spgemm: { name: "SpGEMM", 
-        code: "A(i,j) = B(i,k) * C(k,j)",
-        formats: {
-          A: { name: "CSR", levels: { formats: ["d", "s"], ordering: [0, 1] } },
-          B: { name: "CSR", levels: { formats: ["d", "s"], ordering: [0, 1] } },
-          C: { name: "CSR", levels: { formats: ["d", "s"], ordering: [0, 1] } },
-        }
-      },
-      spadd: { name: "Sparse matrix addition", 
+      add: { name: "Sparse matrix addition", 
         code: "A(i,j) = B(i,j) + C(i,j)",
         formats: {
           A: { name: "CSR", levels: { formats: ["d", "s"], ordering: [0, 1] } },
@@ -1149,7 +1044,7 @@ function demo() {
       ttv: { name: "Tensor-times-vector", 
         code: "A(i,j) = B(i,j,k) * c(k)",
         formats: {
-          A: { name: "CSR", levels: { formats: ["d", "s"], ordering: [0, 1] } },
+          A: { name: "DCSR", levels: { formats: ["s", "s"], ordering: [0, 1] } },
           B: { name: "CSF", levels: { formats: ["s", "s", "s"], ordering: [0, 1, 2] } },
           c: { name: "Dense array", levels: { formats: ["d"], ordering: [0] } },
         }
@@ -1177,51 +1072,17 @@ function demo() {
   }
   $("#listExamples").html(listExamplesBody);
 
-  var getURLParam = function(k) {
+  var getURLParam = function(key) {
     var url = window.location.search.substring(1);
     var params = url.split('&');
     for (var i = 0; i < params.length; ++i) {
       var param = params[i].split('=');
-      var key = param[0];
-      var val = param.slice(1).join('=');
-      if (key === k) {
-        return val;
+      if (param[0] === key) {
+        return param[1];
       }
     }
     return "";
   };
-
-  var inited = false;
-  var expr = getURLParam("expr");
-  if (expr !== "") {
-    var formats = getURLParam("format").split(";");
-    for (var f in formats) {
-      var [tensor, levelFormats, ordering] = formats[f].split(":");
-      levelFormats = levelFormats.split("");
-      ordering = ordering.split(",").map(Number);
-      format = { formats: levelFormats, ordering: ordering };
-      tblFormatsView.insertLevelsCacheEntry(tensor, format);
-      var name = tblFormatsView.getFormatName(format, levelFormats.length);
-      tblFormatsView.insertNamesCacheEntry(tensor, name);
-    }
-
-    expr = expr.replaceAll("%20", " ");
-    model.setInput(expr);
-    $("#txtExpr").val(expr);
-    inited = (model.error == null);
-
-    var schedule = [];
-    var scheduleString = getURLParam("sched");
-    if (scheduleString !== "") {
-      var commands = scheduleString.split(";");
-      for (var c in commands) {
-        var [transform, ...args] = commands[c].split(":").map(function(x) { return x.replaceAll("%20", " "); });
-        command = { command: transform, parameters: args };
-        schedule.push(command);
-      }
-    }
-    model.setSchedule(schedule);
-  }
 
   var demo = getURLParam("demo");
   if (!(demo in examples)) {
@@ -1239,30 +1100,26 @@ function demo() {
         model.setInput(code);
 
         var schedule = default_CPU_schedules[e];
-        model.resetSchedule();
+        model.resetSchedule();      
       };
       $("#example_" + e).click(setExample);
 
       // Initialize demo
-      if (!inited && e === demo) {
+      if (e === demo) {
         setExample();
       }
     })(e, examples[e].code, examples[e].formats);
   }
 
-  if (inited) {
-    getKernel();
-  } else {
-    var urlPrefix = "http://tensor-compiler.org/examples/" + demo;
-    var computeGet = $.get(urlPrefix + "_compute.c");
-    var assemblyGet = $.get(urlPrefix + "_assembly.c");
-    var fullGet = $.get(urlPrefix + "_full.c");
-    $.when(computeGet, assemblyGet, fullGet).done(function() {
-      model.setOutput(computeGet.responseText, 
-              assemblyGet.responseText, 
-              fullGet.responseText, "");
-    });
-  }
+  var urlPrefix = "http://tensor-compiler.org/examples/" + demo;
+  var computeGet = $.get(urlPrefix + "_compute.c");
+  var assemblyGet = $.get(urlPrefix + "_assembly.c");
+  var fullGet = $.get(urlPrefix + "_full.c");
+  $.when(computeGet, assemblyGet, fullGet).done(function() {
+    model.setOutput(computeGet.responseText, 
+            assemblyGet.responseText, 
+            fullGet.responseText, "");
+  });
 
   $("#btnSchedule").click(function() {
     model.addScheduleRow();
@@ -1311,9 +1168,5 @@ function demo() {
         }
     });
     model.setReq(req);
-  });
-
-  $("#prefix").keyup(function() {
-    model.setPrefix($("#prefix").val());
   });
 }
