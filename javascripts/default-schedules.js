@@ -14,44 +14,29 @@ var default_CPU_schedules = {
             parameters: ["i0", "CPU Thread", "No Races"]
           }
         ],
-  spgemm: [
-            {
-              command: "reorder",
-              parameters: ["i", "k", "j"]
-            },
-            {
-              command: "precompute",
-              parameters: ["B(i,k) * C(k,j)", "j", "j"]
-            },
-            {
-              command: "assemble",
-              parameters: ["A", "Insert"]
-            },
-            {
-              command: "parallelize",
-              parameters: ["i", "CPU Thread", "No Races"]
-            }
-          ],
-  spadd: [
-           {
-             command: "assemble",
-             parameters: ["A", "Insert"]
-           },
-           {
-             command: "parallelize",
-             parameters: ["i", "CPU Thread", "No Races"]
-           }
-         ],
+  add: [],
   ttv:  [
-          {
-            command: "assemble",
-            parameters: ["A", "Insert"]
+          { 
+            command: "fuse",
+            parameters: ["i", "j", "f"]
           },
           {
-            command: "parallelize",
-            parameters: ["i", "CPU Thread", "No Races"]
-          }
-        ],
+            command: "pos",
+            parameters: ["f", "fpos", "B"]
+          },
+          {
+            command: "split",
+            parameters: ["fpos", "chunk", "fpos2", 8]
+          },
+          {
+            command: "reorder", 
+            parameters: ["chunk", "fpos2", "k"]
+          },
+          {
+            command: "parallelize", 
+            parameters: ["chunk", "CPU Thread", "No Races"]
+        }
+       ],
   mttkrp: [
             {
               command: "reorder",
@@ -120,9 +105,57 @@ var default_GPU_schedules = {
           parameters: ["thread", "GPU Thread", "Atomics"]
         }
       ],
-  spgemm: [],
-  spadd: [],
-  ttv: [], 
+  add: [],
+  ttv:  [ 
+        {
+          command: "fuse",
+          parameters: ["j", "k", "jk"]
+        },
+        {
+          command: "fuse",
+          parameters: ["i", "jk", "f"]
+        },
+        {
+          command: "pos",
+          parameters: ["f", "fpos", "B"]
+        },
+        {
+          command: "split", 
+          parameters: ["fpos", "block", "fpos1", 256]
+        },
+        {
+          command: "split", 
+          parameters: ["fpos1", "warp", "fpos2", 16]
+        },
+        {
+          command: "split", 
+          parameters: ["fpos2", "thread", "thr_nz", 1] 
+        },
+        {
+          command: "reorder",
+          parameters: ["block", "warp", "thread", "thr_nz"]
+        },
+        {
+          command: "precompute",
+          parameters: ["B(i, j, k) * c(k)", "thr_nz", "thr_nz_pre"]
+        },
+        {
+          command: "unroll",
+          parameters: ["thr_nz_pre", 1]
+        },
+        {
+          command: "parallelize",
+          parameters: ["block", "GPU Block", "Ignore Races"]
+        },
+        {
+          command: "parallelize",
+          parameters: ["warp", "GPU Warp", "Ignore Races"]
+        },
+        {
+          command: "parallelize",
+          parameters: ["thread", "GPU Thread", "Atomics"]
+        }
+        ],
   mttkrp: [
           {
             command: "reorder",
