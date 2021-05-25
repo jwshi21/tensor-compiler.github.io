@@ -31,7 +31,7 @@ class Handler(BaseHTTPRequestHandler):
         response = self.get_schedule(request["expr"], request["form"])
       elif request_type == "KERNEL":
         response = self.get_kernel(request["cmd"])
-        
+
       self.send_response(200)
     except Exception as e:
       print(e)
