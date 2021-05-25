@@ -33,6 +33,7 @@ class Handler(BaseHTTPRequestHandler):
         response = self.get_kernel(request["cmd"])
         
       self.send_response(200)
+    
     except Exception as e:
       print(e)
       self.send_response(400)
@@ -54,8 +55,8 @@ class Handler(BaseHTTPRequestHandler):
     response = {'compute-kernel': '', 'assembly-kernel': '', 'full-kernel': '', 'error': ''}
     prettyCmd = "taco \"" + cmd.replace(" ", "\" ", 1)
     
-    logFile = "/Users/jwshi/Documents/UROP/success.log"
-    tacoPath = "/Users/jwshi/Documents/UROP/taco/build/bin/taco"
+    logFile = "/home/ubuntu/success.log"
+    tacoPath = "/home/ubuntu/taco/build/bin/taco"
 
     prefix = "/tmp/" + str(threading.current_thread().ident) + "_"
     writePath = prefix + "taco_kernel.c"
